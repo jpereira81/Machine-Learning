@@ -1,0 +1,104 @@
+---
+title: "Machine Learning"
+author: "Joao Paulo de Oliveira Pereira"
+date: "04 de setembro de 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Machine Learning Course Project
+
+In this project three different machine leanring methods will be compared in order to determine which is the best one to predict the values wanted.
+
+The *Learning Vector Quantization (LVQ)*, *Gradient Boosted Machine (GBM)* and *Support Vector Machine (SVM)* were selected to this exercice
+
+Here the working directory is setted and the data files are downloaded.
+```{r, message=FALSE, warning=FALSE, cache=TRUE}
+setwd("D:/Data Science/Curso R/8. Machine Learning/course project")
+
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "pml-training.csv")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile = "pml-testing.csv")
+```
+
+The exercice will be done using the *caret* package. In this part of the code the package is called and the datasets are created in the global environment. 
+
+Examining the datasets it is noted that many columns (variables) have mainly NAs (missing values). These variables were removed from the datasets.
+```{r, message=FALSE, warning=FALSE, cache=TRUE}
+require(caret)
+require(dplyr)
+training <- read.csv("pml-training.csv")
+testing <- read.csv("pml-testing.csv")
+```
+
+The varibles with missing values in the training data are listed below. The proportion of missing values in these variables is approximately 98% for all the variables with missing values (NAs).
+The training data presents many variables with missing values. All columns with NAs have only NAs in its fields, so this variables will not be used to fit the models.
+```{r, message=FALSE, warning=FALSE, cache=TRUE}
+data.frame(Vars = names(training), Prop.NA = sort(sapply(training, function(x) sum(is.na(x)) / length(x)), decreasing = TRUE)) %>% filter(Prop.NA > 0)
+
+data.frame(Vars = names(testing), Prop.NA = sort(sapply(testing, function(x) sum(is.na(x)) / length(x)), decreasing = TRUE)) %>% filter(Prop.NA > 0)
+
+```
+
+The training data is then filtered to remove the columns with NAs in the testing set.
+```{r, message=FALSE, warning=FALSE, cache=TRUE}
+variaveis <- testing[sapply(testing, function(x) sum(is.na(x))) == 0] %>% 
+        names() %>%
+        .[!(. %in% c("X", "user_name","problem_id"))]
+
+training <- training[c(variaveis, "classe")]
+
+```
+
+Each of the three models are fitted in a k-fold cross-validation method with 10 folds. Models with cross-validation are less biased and helps prevent overfitting.
+```{r, message=FALSE, warning=FALSE, cache=TRUE}
+require(doParallel)
+        no_cores <- detectCores()-1
+        cl <- makeCluster(no_cores)  
+        registerDoParallel(cores=no_cores)
+
+# Set the training options
+control <- trainControl(method = "cv", number = 10, allowParallel = TRUE)
+
+# Train the LVQ model
+set.seed(280581)
+modelLVQ <- train(classe ~ ., data = training[-c(1,2)], method = "lvq", trControl = control)
+
+# Train the GBM model
+set.seed(280581)
+modelGBM <- train(classe ~ ., data = training, method = "gbm", trControl = control, verbose = FALSE)
+
+# Train the SVM model
+set.seed(280581)
+modelSVM <- train(classe ~ ., data = training[-c(1,2)], method = "svmRadial", trControl = control)
+
+stopCluster(cl)
+```
+
+After running the 3 models we collect the results and compare to find wich one performed better.
+
+```{r, message=FALSE, warning=FALSE, cache=TRUE}
+# Collect resamples
+results <- resamples(list(LVQ = modelLVQ, GBM = modelGBM, SVM = modelSVM))
+
+# Summarize the distributions
+summary(results)
+
+# Boxplots of results
+bwplot(results)
+
+# Dot plots of results
+dotplot(results)
+```
+
+AS we can see in the tables and graphics above, the model with the best performance between the three of them is the GBM model. It will be, then, used to predict the values in the testing set.
+
+```{r, message=FALSE, warning=FALSE, cache=TRUE}
+quiz <- data.frame(Question = 1:20, Answer = predict(modelGBM, testing))
+```
+
+
+
+

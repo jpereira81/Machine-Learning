@@ -289,14 +289,14 @@ summary(results)
 bwplot(results)
 ```
 
-![](courseproject_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+![](courseproject_files/unnamed-chunk-6-1.png)<!-- -->
 
 ```r
 # Dot plots of results
 dotplot(results)
 ```
 
-![](courseproject_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
+![](courseproject_files/unnamed-chunk-6-2.png)<!-- -->
 
 AS we can see in the tables and graphics above, the model with the best performance between the three of them is the GBM model. It will be, then, used to predict the values in the testing set.
 
